@@ -1,4 +1,5 @@
 var express = require("express");
+var exphbs = require("express-handlebars");
 var logger = require("morgan");
 var mongoose = require("mongoose");
 
@@ -9,7 +10,7 @@ var app = express();
 
 var db = require("./models");
 
-var PORT = 3000;
+var PORT = process.env.PORT || 3000;
 
 app.use(logger("dev"));
 
@@ -18,7 +19,25 @@ app.use(express.json());
 
 app.use(express.static("public"));
 
-mongoose.connect("mongodb://localhost/mongo-scraper", { useNewUrlParser: true });
+var MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost/mongo-scraper";
+
+mongoose.connect(MONGODB_URI, {
+    useNewUrlParser: true,
+    useCreateIndex: true
+});
+
+app.engine("handlebars", exphbs({ defaultLayout: "main" }));
+
+app.set("view engine", "handlebars");
+
+app.get("/", function (req, res) {
+    db.Article.find({}).then(function (result) {
+        res.render("index", result);
+    })
+        .catch(function (err) {
+            res.json(err);
+        })
+});
 
 app.get("/all", function (req, res) {
     db.scrapedData.find({}, function (error, found) {
